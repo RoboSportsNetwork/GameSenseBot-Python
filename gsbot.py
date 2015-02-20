@@ -179,5 +179,6 @@ def awards(bot, trigger):
             if award:
                 response += award.toString() + ', '
 
-    bot.reply("I'm sending you a private message with the awards results.")
-    bot.msg(trigger.nick, response[:-2], 5)
+    bot.say(trigger.nick+ ': ' + response[:-2], 5)
+    #bot.reply("I'm sending you a private message with the awards results.")
+    #bot.msg(trigger.nick, response[:-2], 5)
