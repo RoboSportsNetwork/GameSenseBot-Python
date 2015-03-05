@@ -126,6 +126,14 @@ class TbaTeamRecord:
     def toString(self):
         return str(self.wins) + '-' + str(self.losses) + '-' + str(self.ties)
 
+class TbaTeamScoreAvg:
+
+    def __init__(self):
+        self.qualAvg = 0
+        self.playoffAvg = 0
+
+    def toString(self):
+        return 'Qual: ' + str(self.qualAvg) + ', Playoff: ' + str(self.playoffAvg)
 
 class TbaMatch:
 
@@ -281,3 +289,30 @@ class TbaAwardRecipient:
         self.team_number = json_obj.get('team_number')
         self.awardee = json_obj.get('awardee')
         return self
+
+class Tba2015Ranking:
+
+    def __init__(self):
+        self.rank = 0
+        self.team = 0
+        self.qual_avg = 0.0
+        self.auto = 0
+        self.container = 0
+        self.coopertition = 0
+        self.litter = 0
+        self.tote = 0
+        self.played = 0
+
+    def deserialize(self, json_obj):
+        self.rank = json_obj[0]
+        self.team = json_obj[1]
+        self.qual_avg = json_obj[2]
+        self.auto = json_obj[3]
+        self.container = json_obj[4]
+        self.coopertition = json_obj[5]
+        self.litter = json_obj[6]
+        self.tote = json_obj[7]
+        self.played = json_obj[8]
+
+    def toString(self):
+        return str(self.rank) + '. ' + str(self.team) + ' (' + str(self.qual_avg) + ') | '

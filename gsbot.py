@@ -27,6 +27,7 @@ def name(bot, trigger):
 
 @commands('record')
 @example('.record 319 2014', 'Team 319 was 39-27-1 in 2014.')
+@example('!record 148 2015', '148 had an average qual score of 116.10 and an average playoff score of 130.13 in 2015.')
 def record(bot, trigger):
     """Gets the record of the provided team for the given year"""
     inputs = trigger.group(2).split()
@@ -53,11 +54,18 @@ def record(bot, trigger):
                 + str(year) + '.'
             )
         else:
-            bot.reply(
-                str(teamNumber) + ' was ' +
-                communicator.getTeamRecordInMatches('frc' +
-                                                    teamNumber, matches)
-                .toString() + ' in ' + str(year) + ".")
+            if year == '2015':
+                averages = communicator.getTeamScoreAvgInMatches(
+                    'frc' + teamNumber, matches)
+
+                bot.reply(
+                    'Overall, ' + str(teamNumber) + ' had an average qual score of ' + '{0:.2f}'.format(averages.qualAvg) + ' and an average playoff score of ' + '{0:.2f}'.format(averages.playoffAvg) + ' in ' + str(year) + '.')
+            else:
+                bot.reply(
+                    str(teamNumber) + ' was ' +
+                    communicator.getTeamRecordInMatches('frc' +
+                                                        teamNumber, matches)
+                    .toString() + ' in ' + str(year) + ".")
 
     elif eventCode != 'no_evt':
         matches = communicator.getTeamEventMatches(
@@ -72,11 +80,19 @@ def record(bot, trigger):
             )
 
         else:
-            bot.reply(
-                str(teamNumber) + ' was ' +
-                communicator.getTeamRecordInMatches('frc' +
-                                                    teamNumber, matches)
-                .toString() + ' at the ' + str(event.year) + ' ' + event.toString() + '.')
+            if eventCode.startswith('2015'):
+                averages = communicator.getTeamScoreAvgInMatches(
+                    'frc' + teamNumber, matches)
+                rank = communicator.get2015TeamRankingAtEvent(
+                    'frc' + str(teamNumber), event.key)
+                bot.reply(
+                    str(teamNumber) + ' was rank ' + str(rank) + ' with an average qual score of ' + '{0:.2f}'.format(averages.qualAvg) + ' and an average playoff score of ' + '{0:.2f}'.format(averages.playoffAvg) + ' at the ' + str(event.year) + ' ' + event.toString() + '.')
+            else:
+                bot.reply(
+                    str(teamNumber) + ' was ' +
+                    communicator.getTeamRecordInMatches('frc' +
+                                                        teamNumber, matches)
+                    .toString() + ' at the ' + str(event.year) + ' ' + event.toString() + '.')
 
 
 @commands('events')
@@ -179,6 +195,27 @@ def awards(bot, trigger):
             if award:
                 response += award.toString() + ', '
 
-    bot.say(trigger.nick+ ': ' + response[:-2], 5)
-    #bot.reply("I'm sending you a private message with the awards results.")
-    #bot.msg(trigger.nick, response[:-2], 5)
+    bot.reply("I'm sending you a private message with the awards results.")
+    bot.msg(trigger.nick, response[:-2], 5)
+
+
+@commands('rankings')
+@example('!rankings 2015txda', '2015 Dallas Regional (txda) Rankings: 1. 148(116.10), 2. ')
+def rankings(bot, trigger):
+    """Gets the top 8 teams at the specified event"""
+    eventKey = trigger.group(2)
+
+    # We can only handle 2015 rankings right now.
+    if not eventKey.startswith('2015'):
+        eventKey = '2015' + eventKey
+
+    rankings = communicator.get2015EventRankings(eventKey)
+
+    rankingsString = ''
+    for i in range(8):
+        rankingsString += rankings[i].toString()
+
+    event = communicator.getEvent(eventKey)
+
+    bot.reply(str(event.year) + ' ' + event.toString() +
+              ' Rankings: ' + rankingsString[:-3])
