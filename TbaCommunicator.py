@@ -90,8 +90,14 @@ def getTeamScoreAvgInMatches(teamKey, matches):
                 else:
                     qualMatches += 1
                     qualTotal += match.alliances.red.score
-    average.playoffAvg = playoffTotal/playoffMatches
-    average.qualAvg = qualTotal/qualMatches
+    if playoffMatches != 0:
+        average.playoffAvg = playoffTotal/playoffMatches
+    else:
+        average.PlayoffAvg = 0
+    if qualMatches != 0:
+        average.qualAvg = qualTotal/qualMatches
+    else:
+        average.qualAvg = 0
     return average
 
 
@@ -121,7 +127,7 @@ def getMatch(eventCode, matchCode):
 def getEventAwards(eventCode):
     url = TbaApiSettings.tbaBaseUrl + '/event/' + eventCode + '/awards'
     api_response_string = send_and_get_response(url)
-    
+
     if not api_response_string:
         awards = None
     else:
