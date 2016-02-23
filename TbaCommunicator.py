@@ -1,5 +1,6 @@
-import TbaApi as api
+import TbaApi2016 as api
 import TbaApiSettings
+#from TheBlueAlliance import *
 from urllib2 import Request, urlopen, HTTPError
 import json
 
@@ -7,6 +8,7 @@ import json
 def getTeam(teamKey):
     url = TbaApiSettings.tbaBaseUrl + '/team/' + str(teamKey)
     api_response_string = send_and_get_response(url)
+    print "API Response:" + api_response_string
     json_obj = json.loads(api_response_string)
     team = api.TbaTeam()
     return team.deserialize(json_obj)
@@ -187,9 +189,11 @@ def get2015TeamRankingAtEvent(teamKey, eventKey):
 
 def send_and_get_response(uri):
     request = Request(uri)
+    print "Requesting: " + uri
     Request.add_header(request, "X-TBA-App-Id", "gamesense:gamesensebot:v02")
     try:
         response_body = urlopen(request).read()
         return response_body
-    except HTTPError:
+    except HTTPError as detail:
+        print detail
         return None

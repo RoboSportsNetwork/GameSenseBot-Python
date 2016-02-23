@@ -1,5 +1,5 @@
-from willie.module import commands, example
-from willie import TbaCommunicator as communicator
+from sopel.module import commands, example
+from sopel import TbaCommunicator as communicator
 from datetime import date
 
 
@@ -17,16 +17,20 @@ def tba(bot, trigger):
 
 
 @commands('name')
-@example('.name 319', 'Team 319\'s name is Big Bad Bob.')
+@example('!name 319', 'Team 319\'s name is Big Bad Bob.')
 def name(bot, trigger):
     """Gets the name of the provided team"""
-    teamNumber = trigger.group(2)
-    team = communicator.getTeam('frc' + teamNumber)
-    bot.reply('Team ' + teamNumber + '\'s name is ' + team.nickname + ".")
+    try:
+        teamNumber = trigger.group(2)
+        team = communicator.getTeam('frc' + teamNumber)
+        bot.reply('Team ' + teamNumber + '\'s name is ' + team.nickname + ".")
+    except:
+        bot.reply('Sorry, I ran into an error processing that request.')
+
 
 
 @commands('record')
-@example('.record 319 2014', 'Team 319 was 39-27-1 in 2014.')
+@example('!record 319 2014', 'Team 319 was 39-27-1 in 2014.')
 @example('!record 148 2015', '148 had an average qual score of 116.10 and an average playoff score of 130.13 in 2015.')
 def record(bot, trigger):
     """Gets the record of the provided team for the given year"""

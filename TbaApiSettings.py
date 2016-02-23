@@ -1,1 +1,1 @@
-tbaBaseUrl = 'http://www.thebluealliance.com/api/v2';
+tbaBaseUrl = 'https://www.thebluealliance.com/api/v2';
