@@ -1,14 +1,28 @@
 import TbaApi2016 as api
 import TbaApiSettings
 #from TheBlueAlliance import *
-from urllib2 import Request, urlopen, HTTPError
-import json
+import urllib2, json, time, pickle, operator
+
+timestamp = time.time()
+ims_time = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(timestamp))
+api_request_times = {"placeholder": ims_time}
+
+def save_api_request_times():
+    out = open( "cache\\" + convertUriToFileName("api_request_times", '.p') , 'wb+' )
+    pickle.dump(api_request_times, out)
+    out.close()
+
+def load_api_request_times():
+    fin = open( "cache\\" + convertUriToFileName("api_request_times", '.p') , 'rb' )
+    temp = pickle.load(fin)
+    fin.close()
+    return temp
 
 
 def getTeam(teamKey):
     url = TbaApiSettings.tbaBaseUrl + '/team/' + str(teamKey)
     api_response_string = send_and_get_response(url)
-    print "API Response:" + api_response_string
+    #print "API Response:" + api_response_string
     json_obj = json.loads(api_response_string)
     team = api.TbaTeam()
     return team.deserialize(json_obj)
@@ -20,6 +34,55 @@ def getEvent(eventKey):
     json_obj = json.loads(api_response_string)
     event = api.TbaEvent()
     return event.deserialize(json_obj)
+
+
+def get_events(year):
+    url = TbaApiSettings.tbaBaseUrl + '/events/' + str(year)
+    api_response_string = send_and_get_response(url)
+    json_obj = json.loads(api_response_string)
+    events = []
+    for item in json_obj:
+        event = api.TbaEvent()
+        event.deserialize(item)
+        events.append(event)
+
+    return events
+
+
+def get_event_teams(event_key):
+    url = TbaApiSettings.tbaBaseUrl + '/event/' + event_key + '/teams'
+    api_response_string = send_and_get_response(url)
+    json_obj = json.loads(api_response_string)
+    teams = []
+    for item in json_obj:
+        team = api.TbaTeam()
+        team.deserialize(item)
+        teams.append(team)
+
+    return teams
+
+
+def get_event_team_count(event_key):
+    url = TbaApiSettings.tbaBaseUrl + '/event/' + event_key + '/teams'
+    api_response_string = send_and_get_response(url)
+    json_obj = json.loads(api_response_string)
+    return len(json_obj)
+
+
+def get_biggest_event(year):
+    events = get_events(year)
+    biggest_event_team_count = 0
+    biggest_event = api.TbaEvent()
+
+    for event in events:
+        event_key = event.key
+        #print "getting size of " + event_key
+        team_count = get_event_team_count(event_key)
+        if team_count > biggest_event_team_count:
+            biggest_event_team_count = team_count
+            biggest_event = event
+
+    return biggest_event, biggest_event_team_count
 
 
 def getTeamEvents(teamKey, year):
@@ -122,6 +185,7 @@ def getMatch(eventCode, matchCode):
 
 def getEventAwards(eventCode):
     url = TbaApiSettings.tbaBaseUrl + '/event/' + eventCode + '/awards'
+    #print 'event_awards_request: ' + url
     api_response_string = send_and_get_response(url)
     
     if not api_response_string:
@@ -135,6 +199,35 @@ def getEventAwards(eventCode):
             awards.append(award)
 
     return awards
+
+
+def get_most_awards(award_name):
+    events = get_events(2008)
+    events.extend(get_events(2009))
+    events.extend(get_events(2010))
+    events.extend(get_events(2011))
+    events.extend(get_events(2012))
+    events.extend(get_events(2013))
+    events.extend(get_events(2014))
+    events.extend(get_events(2015))
+
+    award_counts = {0: 0}
+
+    for event in events:
+        print 'Getting event awards for ' + str(event.year) + event.event_code
+        awards = getEventAwards(str(event.year) + event.event_code)
+        if awards:
+            for award in awards:
+                if award_name in award.name:
+                    if award_counts.has_key(award.recipient_list[0].team_number):
+                        award_counts[award.recipient_list[0].team_number] += 1
+                    else:
+                        award_counts[award.recipient_list[0].team_number] = 1
+
+    team_num = max(award_counts.iteritems(), key=operator.itemgetter(1))[0]
+
+    return team_num, award_counts[team_num] 
+
 
 
 def getTeamEventAwards(teamKey, eventCode):
@@ -187,13 +280,64 @@ def get2015TeamRankingAtEvent(teamKey, eventKey):
     return None
 
 
+def pretty_print_POST(req):
+    """
+    At this point it is completely built and ready
+    to be fired; it is "prepared".
+
+    However pay attention at the formatting used in 
+    this function because it is programmed to be pretty 
+    printed and may differ from the actual request.
+    """
+
+    print "I should be printing the request"
+    print('{}\n{}\n{}\n\n{}'.format(
+        '-----------START-----------',
+        req.method + ' ' + req.url,
+        '\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
+        req.body,
+    ))
+
+
 def send_and_get_response(uri):
-    request = Request(uri)
-    print "Requesting: " + uri
-    Request.add_header(request, "X-TBA-App-Id", "gamesense:gamesensebot:v02")
+    api_request_times = load_api_request_times()
+    picklable = {uri: 'placeholder'}
+    request = urllib2.Request(uri)
+    #print "Requesting: " + uri
+    request.add_header("X-TBA-App-Id", "gamesense:gamesensebot:v03")
+    request.add_header("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:25.0) Gecko/20100101 Firefox/25.0" )
+    timestamp = time.time()
+    ims_time = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(timestamp))
+    if api_request_times.has_key(uri):
+        request.add_header("If-Modified-Since", api_request_times[uri])
+        save_api_request_times()
+        #print "Using If-Modified-Since: " + ims_time
+    #prepared = request.prepare()
+    #pretty_print_POST(prepared)
     try:
-        response_body = urlopen(request).read()
+        response_body = urllib2.urlopen(request).read()
+        api_request_times[uri] = ims_time
+        picklable[uri] = response_body
+        out = open( "cache\\" + convertUriToFileName(uri, '.p') , 'wb+' )
+        pickle.dump(picklable, out)
+        out.close()
         return response_body
-    except HTTPError as detail:
-        print detail
-        return None
+    except urllib2.HTTPError, err:
+        if err.code == 304:
+            #print "API Not Modified.  Reading from cache."
+            pickle_in = open( "cache\\" + convertUriToFileName(uri, '.p') , 'rb' )
+            picklable = pickle.load(pickle_in)
+            pickle_in.close()
+            return picklable[uri]
+        else:                
+            #log_error(detail)
+            print err
+            return None
+
+
+def log_error(error_str):
+    with open("C:\\Users\\ttremblay\\Documents\\errors.txt", "a+") as myfile:
+      myfile.write(error_str)
+
+def convertUriToFileName(uri, fileExtension):
+    return uri.replace('/','').replace(':','').replace('.','') + fileExtension;

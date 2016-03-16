@@ -2,11 +2,14 @@ from sopel.module import commands, example
 from sopel import TbaCommunicator as communicator
 from datetime import date
 
+currentYear = 2016
+
 
 @commands('tba')
 @example('.tba 319', 'http://www.thebluealliance.com/team/319')
 def tba(bot, trigger):
     """Gets the TBA URL for the provided team number"""
+    print trigger
     teamNumber = trigger.group(2)
     if teamNumber.isdigit():
         urlbase = 'http://www.thebluealliance.com/team/'
@@ -20,6 +23,7 @@ def tba(bot, trigger):
 @example('!name 319', 'Team 319\'s name is Big Bad Bob.')
 def name(bot, trigger):
     """Gets the name of the provided team"""
+    print trigger
     try:
         teamNumber = trigger.group(2)
         team = communicator.getTeam('frc' + teamNumber)
@@ -34,6 +38,7 @@ def name(bot, trigger):
 @example('!record 148 2015', '148 had an average qual score of 116.10 and an average playoff score of 130.13 in 2015.')
 def record(bot, trigger):
     """Gets the record of the provided team for the given year"""
+    print trigger
     inputs = trigger.group(2).split()
 
     teamNumber = inputs[0]
@@ -42,7 +47,7 @@ def record(bot, trigger):
     eventCode = 'no_evt'
 
     if len(inputs) < 2:
-        year = '2015'
+        year = str(currentYear)
     elif inputs[1].isdigit():
         year = inputs[1]
     else:
@@ -103,12 +108,13 @@ def record(bot, trigger):
 @example('.events 319 2014')
 def events(bot, trigger):
     """Gets the list of events the team for the given year"""
+    print trigger
     inputs = trigger.group(2).split()
 
     teamNumber = inputs[0]
 
     if len(inputs) < 2:
-        year = '2015'
+        year = str(currentYear)
     else:
         year = inputs[1]
 
@@ -140,13 +146,14 @@ def events(bot, trigger):
 @example('.matchresult 2014cmp f1m1', 'Red (1678, 1640, 1114) - 236 | Blue (469, 2848, 254) - 361')
 def matchresult(bot, trigger):
     """Gets the result of the specified match"""
+    print trigger
     inputs = trigger.group(2).split()
 
     eventCode = inputs[0]
     matchCode = inputs[1]
 
     if not eventCode[0].isdigit():
-        eventCode = '2015' + eventCode
+        eventCode = str(currentYear) + eventCode
 
     match = communicator.getMatch(eventCode, matchCode)
 
@@ -163,6 +170,7 @@ def matchresult(bot, trigger):
 @example('.awards 319 2014nhdur', 'Get awards for a team at a given event.')
 def awards(bot, trigger):
     """Gets awards from TBA's database"""
+    print trigger
     inputs = trigger.group(2).split()
 
     awards_list = []
@@ -171,11 +179,11 @@ def awards(bot, trigger):
         if inputs[0][-1:].isdigit():
             teamKey = inputs[0]
             awards_list = communicator.getTeamYearAwards(
-                'frc' + str(teamKey), '2015')
+                'frc' + str(teamKey), str(currentYear))
         else:
             eventCode = inputs[0]
             if not eventCode[0].isdigit():
-                eventCode = '2015' + eventCode
+                eventCode = str(currentYear) + eventCode
             awards_list = communicator.getEventAwards(eventCode)
     else:
         if inputs[0][-1:].isdigit() and inputs[1][-1:].isdigit():
@@ -187,7 +195,7 @@ def awards(bot, trigger):
             teamKey = inputs[0]
             eventCode = inputs[1]
             if not eventCode[0].isdigit():
-                eventCode = '2015' + eventCode
+                eventCode = str(currentYear) + eventCode
             awards_list = communicator.getTeamEventAwards(
                 'frc' + str(teamKey), eventCode)
 
@@ -207,6 +215,7 @@ def awards(bot, trigger):
 @example('!rankings 2015txda', '2015 Dallas Regional (txda) Rankings: 1. 148(116.10), 2. ')
 def rankings(bot, trigger):
     """Gets the top 8 teams at the specified event"""
+    print trigger
     eventKey = trigger.group(2)
 
     # We can only handle 2015 rankings right now.
@@ -223,3 +232,25 @@ def rankings(bot, trigger):
 
     bot.reply(str(event.year) + ' ' + event.toString() +
               ' Rankings: ' + rankingsString[:-3])
+
+@commands('biggestEvent')
+def get_biggest_event(bot, trigger):
+	print "Recieved get_biggest_event request."
+	print trigger
+	year = trigger.group(2)
+
+	biggest_event, team_count = communicator.get_biggest_event(year)
+
+	bot.reply('The biggest event in ' + str(year) + ' is ' + biggest_event.short_name + ' with ' + str(team_count) + ' teams.')
+
+
+
+#@commands('mostAwards')
+def get_most_awards_team(bot, trigger):
+	print "Received get_most_awards_team request."
+	print trigger
+
+	team_num, award_count = communicator.get_most_awards('Safety')
+
+	bot.reply(str(team_num) + ' has received ' + str(award_count) + ' Safety awards.')
+
